@@ -80,12 +80,7 @@ public class Parser {
 
         // Desugar
         if (increment != null) {
-            body = new Stmt.Block(
-                    Arrays.asList(
-                            body,
-                            new Stmt.Expression(increment)
-                    )
-            );
+            body = new Stmt.Block(Arrays.asList(body, new Stmt.Expression(increment)));
         }
 
         if (condition == null) condition = new Expr.Literal(true);
@@ -94,7 +89,7 @@ public class Parser {
         if (initializer != null) {
             body = new Stmt.Block(Arrays.asList(initializer, body));
         }
-        
+
         return body;
     }
 
@@ -253,7 +248,35 @@ public class Parser {
             return new Expr.Unary(operator, right);
         }
 
-        return primary();
+        return call();
+    }
+
+    private Expr call() {
+        Expr expr = primary();
+
+        while (true) {
+            if (match(LEFT_PAREN)) {
+                expr = finishCall(expr);
+            } else {
+                break;
+            }
+        }
+
+        return expr;
+    }
+
+    private Expr finishCall(Expr callee) {
+        List<Expr> arguments = new ArrayList<>();
+
+        if (!check(RIGHT_PAREN)) {
+            do {
+                arguments.add(expression());
+            } while (match(COMMA));
+        }
+
+        Token paren = consume(RIGHT_PAREN, "Expect ')' after arguments.");
+
+        return new Expr.Call(callee, paren, arguments);
     }
 
     private Expr primary() {
